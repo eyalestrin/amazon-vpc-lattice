@@ -1,0 +1,297 @@
+# AWS VPC Lattice Cross-Account Transaction Store
+
+This project demonstrates a secure cross-account architecture using AWS VPC Lattice, where a Lambda function in Account 1 connects privately to an RDS PostgreSQL database in Account 2 for transaction data management.
+
+## Architecture Overview
+
+- **Account 1 (Lambda)**: Lambda function with public Function URL, VPC Lattice Service Network association
+- **Account 2 (RDS)**: RDS PostgreSQL database, VPC Lattice Service, AWS Secrets Manager
+- **Connection**: Secure private communication through VPC Lattice across accounts (no VPC endpoints or NAT gateways)
+- **Security**: Database credentials managed via AWS Secrets Manager with cross-account access
+
+## Prerequisites
+
+- Two AWS accounts with appropriate permissions
+- AWS CLI configured with cross-account access
+- Terraform installed (available in AWS CloudShell)
+- Access to AWS CloudShell
+- PostgreSQL client (psql) for data import
+
+## Required Permissions
+
+### Account 1 (Lambda)
+- Lambda, VPC, VPC Lattice, IAM permissions
+- Cross-account Secrets Manager access
+- Cross-account VPC Lattice service network association
+
+### Account 2 (RDS)
+- RDS, VPC, VPC Lattice permissions
+- AWS Secrets Manager permissions
+- AWS RAM (Resource Access Manager) permissions
+- Cross-account VPC Lattice service association
+
+## Deployment Steps
+
+### 1. Clone Repository
+
+```bash
+# Clone the repository
+git clone https://github.com/eyalestrin/amazon-vpc-lattice.git
+cd amazon-vpc-lattice
+```
+
+### 2. Deploy RDS Account (Account 2) First
+
+```bash
+cd rds
+
+# Copy and configure variables
+cp terraform.tfvars.example terraform.tfvars
+
+# Edit terraform.tfvars with your values:
+# aws_region  = "us-east-1"
+# account1_id = "123456789012"  # Your Account 1 ID (Lambda)
+# db_password = "YourSecurePassword123!"
+
+# Deploy RDS infrastructure
+terraform init
+terraform plan
+terraform apply
+
+# Note the outputs: secret_arn and lattice_service_network_arn
+```
+
+### 3. Import Transaction Data
+
+```bash
+# Get RDS endpoint from terraform output
+RDS_ENDPOINT=$(terraform output -raw rds_endpoint)
+
+# Import sample data (you'll be prompted for password)
+psql -h $RDS_ENDPOINT -U dbadmin -d transactionsdb -f transactions_data.sql
+```
+
+### 4. Deploy Lambda Account (Account 1)
+
+```bash
+cd ../lambda
+
+# Copy and configure variables
+cp terraform.tfvars.example terraform.tfvars
+
+# Edit terraform.tfvars with values from RDS deployment:
+# aws_region                   = "us-east-1"
+# account2_id                  = "123456789013"  # Your Account 2 ID (RDS)
+# rds_secret_arn              = "<secret_arn_from_rds_output>"
+# lattice_service_network_arn = "<lattice_network_arn_from_rds_output>"
+
+# Create Lambda package
+mkdir lambda_package
+cp lambda_function.py lambda_package/
+pip install -r requirements.txt -t lambda_package/
+cd lambda_package && zip -r ../lambda_function.zip . && cd ..
+rm -rf lambda_package
+
+# Deploy Lambda infrastructure
+terraform init
+terraform plan
+terraform apply
+```
+
+### 5. Automated Deployment (Alternative)
+
+```bash
+# Make deployment script executable
+chmod +x deploy.sh
+
+# Run automated deployment
+./deploy.sh
+```
+
+## Usage
+
+### Web Interface (Browser)
+
+1. Open the Lambda Function URL in your browser
+2. Enter a Transaction ID (1-15 for sample data)
+3. Click "Lookup Transaction" to retrieve details
+4. View transaction information with secure cross-account database access
+
+**Input Validation:**
+- Transaction ID must be a positive integer (1-999999)
+- Based on SQL SERIAL PRIMARY KEY constraints
+- Real-time validation with user-friendly error messages
+
+### API Usage (Programmatic)
+
+#### Get All Transactions
+```bash
+curl -X GET "https://your-function-url.lambda-url.region.on.aws/"
+```
+
+#### Get Specific Transaction
+```bash
+curl -X GET "https://your-function-url.lambda-url.region.on.aws/?id=1"
+```
+
+#### Create New Transaction
+```bash
+curl -X POST "https://your-function-url.lambda-url.region.on.aws/" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer_id": 1001,
+    "product_name": "New Product",
+    "amount": 99.99,
+    "transaction_date": "2024-01-22T10:00:00"
+  }'
+```
+
+## Response Format
+
+### Transaction Response
+```json
+{
+  "id": 1,
+  "customer_id": 1001,
+  "product_name": "Laptop Computer",
+  "amount": 1299.99,
+  "transaction_date": "2024-01-15T10:30:00",
+  "created_at": "2024-01-15T10:30:00"
+}
+```
+
+### Error Response
+```json
+{
+  "error": "Transaction not found"
+}
+```
+
+## Security Features
+
+- **Private Communication**: VPC Lattice ensures private connectivity between accounts (no VPC endpoints or NAT gateways)
+- **No Internet Exposure**: RDS database is not accessible from the internet
+- **Secrets Management**: Database credentials stored in AWS Secrets Manager with cross-account access
+- **Secure Authentication**: Cross-account IAM roles and policies
+- **Network Isolation**: Separate VPCs with controlled access
+- **Resource Sharing**: AWS RAM for secure cross-account VPC Lattice sharing
+
+## Monitoring and Troubleshooting
+
+### CloudWatch Logs
+- Lambda function logs: `/aws/lambda/query-transactions`
+- VPC Lattice access logs (if enabled)
+
+### Common Issues
+
+1. **Cross-account permissions**: Ensure both accounts have proper VPC Lattice and Secrets Manager permissions
+2. **Database connectivity**: Check security groups and VPC Lattice target group health
+3. **Secrets Manager access**: Verify cross-account secret policy allows Lambda role access
+4. **Lambda timeout**: Increase timeout if database operations are slow
+5. **RAM sharing**: Ensure VPC Lattice service network is properly shared via AWS RAM
+
+### Testing Connectivity
+
+```bash
+# Test from Lambda environment (CloudShell)
+aws lambda invoke \
+  --function-name query-transactions \
+  --payload '{"requestContext":{"http":{"method":"GET"}}}' \
+  response.json && cat response.json
+```
+
+### Verify Secrets Manager Access
+
+```bash
+# Test secret access from Account 1
+aws secretsmanager get-secret-value \
+  --secret-id arn:aws:secretsmanager:region:account2:secret:rds-postgres-credentials-XXXXXX
+```
+
+## Cleanup
+
+```bash
+terraform destroy
+```
+
+## Cost Considerations
+
+- **Lambda**: Pay per request and execution time
+- **RDS**: db.t3.micro instance (~$13/month)
+- **VPC Lattice**: Pay per processed GB and connection time
+- **Data Transfer**: Cross-AZ charges may apply
+
+## Architecture
+
+For detailed architecture diagrams and data flow, see [ARCHITECTURE.md](ARCHITECTURE.md).
+
+**High-Level Flow:**
+```
+Browser → Lambda Function URL → Lambda (Account 1) → VPC Lattice → RDS PostgreSQL (Account 2)
+                                      ↓
+                              AWS Secrets Manager (Account 2)
+```
+
+## File Structure
+
+```
+├── lambda/                           # Account 1 (Lambda) resources
+│   ├── main.tf                      # Lambda Terraform configuration
+│   ├── lambda_function.py           # Lambda function code with web interface
+│   ├── requirements.txt             # Python dependencies
+│   └── terraform.tfvars.example     # Lambda configuration template
+├── rds/                             # Account 2 (RDS) resources
+│   ├── main.tf                      # RDS Terraform configuration
+│   ├── transactions_data.sql        # Sample transaction data
+│   └── terraform.tfvars.example     # RDS configuration template
+├── deploy.sh                        # Automated deployment script
+├── ARCHITECTURE.md                  # Detailed architecture documentation
+├── .gitignore                       # Git ignore file
+└── README.md                        # This documentation
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test the deployment
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License.
+
+## Pushing to GitHub
+
+### Initial Setup
+```bash
+# Initialize git repository
+git init
+git add .
+git commit -m "Initial commit: AWS VPC Lattice cross-account transaction store"
+
+# Add remote repository
+git remote add origin https://github.com/eyalestrin/amazon-vpc-lattice.git
+git branch -M main
+
+# Push to GitHub
+git push -u origin main
+```
+
+### Updating Repository
+```bash
+# Add changes
+git add .
+git commit -m "Update: Add web interface and architecture documentation"
+git push origin main
+```
+
+## Support
+
+For issues and questions:
+- Check AWS VPC Lattice documentation
+- Review CloudWatch logs
+- Verify cross-account permissions
+- Test network connectivity
+- Review [ARCHITECTURE.md](ARCHITECTURE.md) for detailed flow diagrams

@@ -41,12 +41,31 @@ cd amazon-vpc-lattice
 
 ### 2. Deploy RDS Account (Account 2) First
 
+Get your AWS Account IDs:
+```bash
+# Get current account ID (Account 2 - RDS)
+AWS_ACCOUNT_2=$(aws sts get-caller-identity --query Account --output text)
+echo "Account 2 (RDS): $AWS_ACCOUNT_2"
+
+# You'll need Account 1 ID manually (the Lambda account)
+echo "Enter Account 1 ID (Lambda account):"
+read AWS_ACCOUNT_1
+```
+
+Create and configure terraform.tfvars:
 ```bash
 cd rds
 cp terraform.tfvars.example terraform.tfvars
+
+# Edit terraform.tfvars with your values
+cat > terraform.tfvars <<EOF
+aws_region  = "us-east-1"
+account1_id = "$AWS_ACCOUNT_1"
+db_password = "YourSecurePassword123!"
+EOF
 ```
 
-Edit `terraform.tfvars` with your values:
+Or manually edit `terraform.tfvars`:
 ```hcl
 aws_region  = "us-east-1"
 account1_id = "123456789012"  # Replace with your Account 1 ID
@@ -78,12 +97,35 @@ When prompted, enter the password you set in `terraform.tfvars`.
 
 ### 4. Deploy Lambda Account (Account 1)
 
+Get values from RDS deployment:
 ```bash
-cd ../lambda
-cp terraform.tfvars.example terraform.tfvars
+# Get Account 2 ID
+AWS_ACCOUNT_2=$(aws sts get-caller-identity --query Account --output text)
+echo "Account 2 (RDS): $AWS_ACCOUNT_2"
+
+# Get RDS outputs (run from rds directory)
+SECRET_ARN=$(cd ../rds && terraform output -raw secret_arn)
+LATTICE_ARN=$(cd ../rds && terraform output -raw lattice_service_network_arn)
+
+echo "Secret ARN: $SECRET_ARN"
+echo "Lattice Network ARN: $LATTICE_ARN"
 ```
 
-Edit `terraform.tfvars` with values from RDS deployment:
+Create and configure terraform.tfvars:
+```bash
+cd lambda
+cp terraform.tfvars.example terraform.tfvars
+
+# Auto-generate terraform.tfvars with values
+cat > terraform.tfvars <<EOF
+aws_region                   = "us-east-1"
+account2_id                  = "$AWS_ACCOUNT_2"
+rds_secret_arn              = "$SECRET_ARN"
+lattice_service_network_arn = "$LATTICE_ARN"
+EOF
+```
+
+Or manually edit `terraform.tfvars`:
 ```hcl
 aws_region                   = "us-east-1"
 account2_id                  = "123456789013"  # Replace with your Account 2 ID
@@ -257,6 +299,7 @@ Browser → Lambda Function URL → Lambda (Account 1) → VPC Lattice → RDS P
 │   ├── transactions_data.sql        # Sample transaction data
 │   └── terraform.tfvars.example     # RDS configuration template
 ├── deploy.sh                        # Automated deployment script
+├── push-to-git.sh                   # Script to push code to GitHub
 ├── ARCHITECTURE.md                  # Detailed architecture documentation
 ├── .gitignore                       # Git ignore file
 └── README.md                        # This documentation
@@ -276,7 +319,13 @@ This project is licensed under the MIT License.
 
 ## Pushing to GitHub
 
-### Initial Setup
+### Using the Script (Recommended)
+```bash
+chmod +x push-to-git.sh
+./push-to-git.sh
+```
+
+### Manual Push
 ```bash
 git init
 git add .

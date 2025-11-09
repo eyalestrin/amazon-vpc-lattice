@@ -124,6 +124,8 @@ echo "Secret ARN: $SECRET_ARN"
 echo "Lattice Network ARN: $LATTICE_ARN"
 ```
 
+Note: You're now in Account 1 (Lambda), so you need Account 2 ID from the RDS deployment.
+
 Create and configure terraform.tfvars:
 ```bash
 cd lambda
@@ -137,8 +139,6 @@ rds_secret_arn              = "$SECRET_ARN"
 lattice_service_network_arn = "$LATTICE_ARN"
 EOF
 ```
-
-Note: You're now in Account 1 (Lambda), so you need Account 2 ID from the RDS deployment.
 ```
 
 Or manually edit `terraform.tfvars`:

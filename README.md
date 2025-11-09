@@ -68,6 +68,7 @@ Back in Account 2, enter Account 1 ID:
 # Enter Account 1 ID (Lambda account)
 echo "Enter Account 1 ID (Lambda account):"
 read AWS_ACCOUNT_1
+echo "Account 1 (Lambda): $AWS_ACCOUNT_1"
 ```
 
 Create and configure terraform.tfvars:

@@ -65,15 +65,15 @@ AWS_ACCOUNT_1=$(aws sts get-caller-identity --query Account --output text)
 echo "Account 1 (Lambda): $AWS_ACCOUNT_1"
 ```
 
-Create and configure terraform.tfvars:
+Back in Account 2, create and configure terraform.tfvars:
 ```bash
 cd rds
 cp terraform.tfvars.example terraform.tfvars
 
-# Edit terraform.tfvars with your values
+# Replace with your Account 1 ID from above
 cat > terraform.tfvars <<EOF
 aws_region  = "us-east-1"
-account1_id = "$AWS_ACCOUNT_1"
+account1_id = "123456789012"
 EOF
 ```
 
@@ -109,39 +109,28 @@ PGPASSWORD=$DB_PASSWORD psql -h $RDS_ENDPOINT -U dbadmin -d transactionsdb -f tr
 
 ### 5. Deploy Lambda Account (Account 1)
 
-Get values from RDS deployment:
+Get values from Account 2 (RDS) deployment outputs (run this in Account 2):
+```bash
+terraform output secret_arn
+terraform output lattice_service_network_arn
+```
+
+In Account 1, get Account IDs and create terraform.tfvars:
 ```bash
 # Get current account ID (Account 1 - Lambda)
 AWS_ACCOUNT_1=$(aws sts get-caller-identity --query Account --output text)
 echo "Account 1 (Lambda): $AWS_ACCOUNT_1"
 
-# Get Account 2 ID (you'll need this from the RDS account)
-echo "Enter Account 2 ID (RDS account):"
-read AWS_ACCOUNT_2
-
-# Get RDS outputs (run from rds directory)
-SECRET_ARN=$(cd ../rds && terraform output -raw secret_arn)
-LATTICE_ARN=$(cd ../rds && terraform output -raw lattice_service_network_arn)
-
-echo "Secret ARN: $SECRET_ARN"
-echo "Lattice Network ARN: $LATTICE_ARN"
-```
-
-Note: You're now in Account 1 (Lambda), so you need Account 2 ID from the RDS deployment.
-
-Create and configure terraform.tfvars:
-```bash
 cd lambda
 cp terraform.tfvars.example terraform.tfvars
 
-# Auto-generate terraform.tfvars with values
+# Replace with your actual values from Account 2 outputs
 cat > terraform.tfvars <<EOF
 aws_region                   = "us-east-1"
-account2_id                  = "$AWS_ACCOUNT_2"
-rds_secret_arn              = "$SECRET_ARN"
-lattice_service_network_arn = "$LATTICE_ARN"
+account2_id                  = "123456789013"
+rds_secret_arn              = "arn:aws:secretsmanager:us-east-1:123456789013:secret:rds-postgres-credentials-XXXXXX"
+lattice_service_network_arn = "arn:aws:vpc-lattice:us-east-1:123456789013:servicenetwork/sn-XXXXXXXXX"
 EOF
-```
 ```
 
 Or manually edit `terraform.tfvars`:

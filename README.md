@@ -32,14 +32,24 @@ This project demonstrates a secure cross-account architecture using AWS VPC Latt
 
 ## Deployment Steps
 
-### 1. Clone Repository
+### 1. Install Terraform in AWS CloudShell
+
+```bash
+# Download and install Terraform
+wget https://releases.hashicorp.com/terraform/1.6.6/terraform_1.6.6_linux_amd64.zip
+unzip terraform_1.6.6_linux_amd64.zip
+sudo mv terraform /usr/local/bin/
+terraform --version
+```
+
+### 2. Clone Repository
 
 ```bash
 git clone https://github.com/eyalestrin/amazon-vpc-lattice.git
 cd amazon-vpc-lattice
 ```
 
-### 2. Deploy RDS Account (Account 2) First
+### 3. Deploy RDS Account (Account 2) First
 
 Get your AWS Account IDs:
 ```bash
@@ -84,7 +94,7 @@ terraform output lattice_service_network_arn
 terraform output rds_endpoint
 ```
 
-### 3. Import Transaction Data
+### 4. Import Transaction Data
 
 ```bash
 RDS_ENDPOINT=$(terraform output -raw rds_endpoint)
@@ -94,7 +104,7 @@ DB_PASSWORD=$(terraform output -raw db_password)
 PGPASSWORD=$DB_PASSWORD psql -h $RDS_ENDPOINT -U dbadmin -d transactionsdb -f transactions_data.sql
 ```
 
-### 4. Deploy Lambda Account (Account 1)
+### 5. Deploy Lambda Account (Account 1)
 
 Get values from RDS deployment:
 ```bash

@@ -60,7 +60,9 @@ echo "Account 2 (RDS): $AWS_ACCOUNT_2"
 
 Get Account 1 ID from Account 1 CloudShell (run this in Account 1):
 ```bash
-aws sts get-caller-identity --query Account --output text
+# Get current account ID (Account 1 - Lambda)
+AWS_ACCOUNT_1=$(aws sts get-caller-identity --query Account --output text)
+echo "Account 1 (Lambda): $AWS_ACCOUNT_1"
 ```
 
 Back in Account 2, enter Account 1 ID:

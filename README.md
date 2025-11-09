@@ -65,14 +65,6 @@ AWS_ACCOUNT_1=$(aws sts get-caller-identity --query Account --output text)
 echo "Account 1 (Lambda): $AWS_ACCOUNT_1"
 ```
 
-Back in Account 2, enter Account 1 ID:
-```bash
-# Enter Account 1 ID (Lambda account)
-echo "Enter Account 1 ID (Lambda account):"
-read AWS_ACCOUNT_1
-echo "Account 1 (Lambda): $AWS_ACCOUNT_1"
-```
-
 Create and configure terraform.tfvars:
 ```bash
 cd rds

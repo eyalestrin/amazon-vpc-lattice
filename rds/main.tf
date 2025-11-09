@@ -4,6 +4,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.5"
+    }
   }
 }
 
@@ -22,10 +26,10 @@ variable "account1_id" {
   type        = string
 }
 
-variable "db_password" {
-  description = "RDS password"
-  type        = string
-  sensitive   = true
+# Random password generation
+resource "random_password" "db_password" {
+  length  = 16
+  special = true
 }
 
 # VPC for RDS
@@ -100,7 +104,7 @@ resource "aws_secretsmanager_secret_version" "rds_credentials" {
   secret_id = aws_secretsmanager_secret.rds_credentials.id
   secret_string = jsonencode({
     username = "dbadmin"
-    password = var.db_password
+    password = random_password.db_password.result
     engine   = "postgres"
     host     = aws_db_instance.postgres.endpoint
     port     = 5432
@@ -137,7 +141,7 @@ resource "aws_db_instance" "postgres" {
   storage_type           = "gp2"
   db_name                = "transactionsdb"
   username               = "dbadmin"
-  password               = var.db_password
+  password               = random_password.db_password.result
   vpc_security_group_ids = [aws_security_group.rds_sg.id]
   db_subnet_group_name   = aws_db_subnet_group.rds_subnet_group.name
   skip_final_snapshot    = true
@@ -239,4 +243,9 @@ output "lattice_service_network_arn" {
 
 output "lattice_service_endpoint" {
   value = aws_vpclattice_service.rds_service.dns_entry[0].domain_name
+}
+
+output "db_password" {
+  value     = random_password.db_password.result
+  sensitive = true
 }

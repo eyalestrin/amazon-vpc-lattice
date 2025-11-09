@@ -33,3 +33,7 @@ Thumbs.db
 
 # AWS
 response.json
+
+# Scripts
+deploy.sh
+push-to-git.sh

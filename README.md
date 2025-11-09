@@ -61,7 +61,6 @@ cp terraform.tfvars.example terraform.tfvars
 cat > terraform.tfvars <<EOF
 aws_region  = "us-east-1"
 account1_id = "$AWS_ACCOUNT_1"
-db_password = "YourSecurePassword123!"
 EOF
 ```
 
@@ -69,7 +68,6 @@ Or manually edit `terraform.tfvars`:
 ```hcl
 aws_region  = "us-east-1"
 account1_id = "123456789012"  # Replace with your Account 1 ID
-db_password = "YourSecurePassword123!"  # Replace with secure password
 ```
 
 Deploy RDS infrastructure:
@@ -90,10 +88,11 @@ terraform output rds_endpoint
 
 ```bash
 RDS_ENDPOINT=$(terraform output -raw rds_endpoint)
-psql -h $RDS_ENDPOINT -U dbadmin -d transactionsdb -f transactions_data.sql
-```
+DB_PASSWORD=$(terraform output -raw db_password)
 
-When prompted, enter the password you set in `terraform.tfvars`.
+# Import data using auto-generated password
+PGPASSWORD=$DB_PASSWORD psql -h $RDS_ENDPOINT -U dbadmin -d transactionsdb -f transactions_data.sql
+```
 
 ### 4. Deploy Lambda Account (Account 1)
 
@@ -148,13 +147,6 @@ terraform apply -auto-approve
 Get your Lambda Function URL:
 ```bash
 terraform output lambda_function_url
-```
-
-### 5. Automated Deployment (Alternative)
-
-```bash
-chmod +x deploy.sh
-./deploy.sh
 ```
 
 ## Usage
@@ -298,7 +290,6 @@ Browser → Lambda Function URL → Lambda (Account 1) → VPC Lattice → RDS P
 │   ├── main.tf                      # RDS Terraform configuration
 │   ├── transactions_data.sql        # Sample transaction data
 │   └── terraform.tfvars.example     # RDS configuration template
-├── deploy.sh                        # Automated deployment script
 ├── ARCHITECTURE.md                  # Detailed architecture documentation
 ├── .gitignore                       # Git ignore file
 └── README.md                        # This documentation

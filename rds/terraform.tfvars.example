@@ -1,3 +1,2 @@
 aws_region  = "us-east-1"
 account1_id = "123456789012"  # Replace with your Account 1 ID (Lambda)
-db_password = "YourSecurePassword123!"

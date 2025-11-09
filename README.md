@@ -57,7 +57,10 @@ Get your AWS Account IDs:
 AWS_ACCOUNT_2=$(aws sts get-caller-identity --query Account --output text)
 echo "Account 2 (RDS): $AWS_ACCOUNT_2"
 
-# You'll need Account 1 ID manually (the Lambda account)
+# Get Account 1 ID - run this command in Account 1 CloudShell:
+# aws sts get-caller-identity --query Account --output text
+
+# Enter Account 1 ID (Lambda account)
 echo "Enter Account 1 ID (Lambda account):"
 read AWS_ACCOUNT_1
 ```

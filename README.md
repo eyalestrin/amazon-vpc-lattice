@@ -108,9 +108,13 @@ PGPASSWORD=$DB_PASSWORD psql -h $RDS_ENDPOINT -U dbadmin -d transactionsdb -f tr
 
 Get values from RDS deployment:
 ```bash
-# Get Account 2 ID
-AWS_ACCOUNT_2=$(aws sts get-caller-identity --query Account --output text)
-echo "Account 2 (RDS): $AWS_ACCOUNT_2"
+# Get current account ID (Account 1 - Lambda)
+AWS_ACCOUNT_1=$(aws sts get-caller-identity --query Account --output text)
+echo "Account 1 (Lambda): $AWS_ACCOUNT_1"
+
+# Get Account 2 ID (you'll need this from the RDS account)
+echo "Enter Account 2 ID (RDS account):"
+read AWS_ACCOUNT_2
 
 # Get RDS outputs (run from rds directory)
 SECRET_ARN=$(cd ../rds && terraform output -raw secret_arn)
@@ -134,13 +138,15 @@ lattice_service_network_arn = "$LATTICE_ARN"
 EOF
 ```
 
+Note: You're now in Account 1 (Lambda), so you need Account 2 ID from the RDS deployment.
+```
+
 Or manually edit `terraform.tfvars`:
 ```hcl
 aws_region                   = "us-east-1"
 account2_id                  = "123456789013"  # Replace with your Account 2 ID
-rds_secret_arn              = "arn:aws:secretsmanager:us-east-1:123456789013:secret:rds-postgres-credentials-XXXXXX"  # From step 2 output
-lattice_service_network_arn = "arn:aws:vpc-lattice:us-east-1:123456789013:servicenetwork/sn-XXXXXXXXX"  # From step 2 output
-```
+rds_secret_arn              = "arn:aws:secretsmanager:us-east-1:123456789013:secret:rds-postgres-credentials-XXXXXX"  # From step 3 output
+lattice_service_network_arn = "arn:aws:vpc-lattice:us-east-1:123456789013:servicenetwork/sn-XXXXXXXXX"  # From step 3 output
 
 Create Lambda package and deploy:
 ```bash

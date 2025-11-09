@@ -299,7 +299,6 @@ Browser → Lambda Function URL → Lambda (Account 1) → VPC Lattice → RDS P
 │   ├── transactions_data.sql        # Sample transaction data
 │   └── terraform.tfvars.example     # RDS configuration template
 ├── deploy.sh                        # Automated deployment script
-├── push-to-git.sh                   # Script to push code to GitHub
 ├── ARCHITECTURE.md                  # Detailed architecture documentation
 ├── .gitignore                       # Git ignore file
 └── README.md                        # This documentation
@@ -319,13 +318,6 @@ This project is licensed under the MIT License.
 
 ## Pushing to GitHub
 
-### Using the Script (Recommended)
-```bash
-chmod +x push-to-git.sh
-./push-to-git.sh
-```
-
-### Manual Push
 ```bash
 git init
 git add .

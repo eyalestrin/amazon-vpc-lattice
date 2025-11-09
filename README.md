@@ -35,7 +35,6 @@ This project demonstrates a secure cross-account architecture using AWS VPC Latt
 ### 1. Clone Repository
 
 ```bash
-# Clone the repository
 git clone https://github.com/eyalestrin/amazon-vpc-lattice.git
 cd amazon-vpc-lattice
 ```
@@ -44,67 +43,75 @@ cd amazon-vpc-lattice
 
 ```bash
 cd rds
-
-# Copy and configure variables
 cp terraform.tfvars.example terraform.tfvars
+```
 
-# Edit terraform.tfvars with your values:
-# aws_region  = "us-east-1"
-# account1_id = "123456789012"  # Your Account 1 ID (Lambda)
-# db_password = "YourSecurePassword123!"
+Edit `terraform.tfvars` with your values:
+```hcl
+aws_region  = "us-east-1"
+account1_id = "123456789012"  # Replace with your Account 1 ID
+db_password = "YourSecurePassword123!"  # Replace with secure password
+```
 
-# Deploy RDS infrastructure
+Deploy RDS infrastructure:
+```bash
 terraform init
 terraform plan
-terraform apply
+terraform apply -auto-approve
+```
 
-# Note the outputs: secret_arn and lattice_service_network_arn
+Save the outputs:
+```bash
+terraform output secret_arn
+terraform output lattice_service_network_arn
+terraform output rds_endpoint
 ```
 
 ### 3. Import Transaction Data
 
 ```bash
-# Get RDS endpoint from terraform output
 RDS_ENDPOINT=$(terraform output -raw rds_endpoint)
-
-# Import sample data (you'll be prompted for password)
 psql -h $RDS_ENDPOINT -U dbadmin -d transactionsdb -f transactions_data.sql
 ```
+
+When prompted, enter the password you set in `terraform.tfvars`.
 
 ### 4. Deploy Lambda Account (Account 1)
 
 ```bash
 cd ../lambda
-
-# Copy and configure variables
 cp terraform.tfvars.example terraform.tfvars
+```
 
-# Edit terraform.tfvars with values from RDS deployment:
-# aws_region                   = "us-east-1"
-# account2_id                  = "123456789013"  # Your Account 2 ID (RDS)
-# rds_secret_arn              = "<secret_arn_from_rds_output>"
-# lattice_service_network_arn = "<lattice_network_arn_from_rds_output>"
+Edit `terraform.tfvars` with values from RDS deployment:
+```hcl
+aws_region                   = "us-east-1"
+account2_id                  = "123456789013"  # Replace with your Account 2 ID
+rds_secret_arn              = "arn:aws:secretsmanager:us-east-1:123456789013:secret:rds-postgres-credentials-XXXXXX"  # From step 2 output
+lattice_service_network_arn = "arn:aws:vpc-lattice:us-east-1:123456789013:servicenetwork/sn-XXXXXXXXX"  # From step 2 output
+```
 
-# Create Lambda package
+Create Lambda package and deploy:
+```bash
 mkdir lambda_package
 cp lambda_function.py lambda_package/
 pip install -r requirements.txt -t lambda_package/
 cd lambda_package && zip -r ../lambda_function.zip . && cd ..
 rm -rf lambda_package
-
-# Deploy Lambda infrastructure
 terraform init
 terraform plan
-terraform apply
+terraform apply -auto-approve
+```
+
+Get your Lambda Function URL:
+```bash
+terraform output lambda_function_url
 ```
 
 ### 5. Automated Deployment (Alternative)
 
 ```bash
-# Make deployment script executable
 chmod +x deploy.sh
-
-# Run automated deployment
 ./deploy.sh
 ```
 
@@ -126,17 +133,18 @@ chmod +x deploy.sh
 
 #### Get All Transactions
 ```bash
-curl -X GET "https://your-function-url.lambda-url.region.on.aws/"
+FUNCTION_URL=$(cd lambda && terraform output -raw lambda_function_url)
+curl -X GET "$FUNCTION_URL"
 ```
 
 #### Get Specific Transaction
 ```bash
-curl -X GET "https://your-function-url.lambda-url.region.on.aws/?id=1"
+curl -X GET "${FUNCTION_URL}?id=1"
 ```
 
 #### Create New Transaction
 ```bash
-curl -X POST "https://your-function-url.lambda-url.region.on.aws/" \
+curl -X POST "$FUNCTION_URL" \
   -H "Content-Type: application/json" \
   -d '{
     "customer_id": 1001,
@@ -193,25 +201,29 @@ curl -X POST "https://your-function-url.lambda-url.region.on.aws/" \
 ### Testing Connectivity
 
 ```bash
-# Test from Lambda environment (CloudShell)
 aws lambda invoke \
   --function-name query-transactions \
   --payload '{"requestContext":{"http":{"method":"GET"}}}' \
-  response.json && cat response.json
+  response.json
+cat response.json
 ```
 
 ### Verify Secrets Manager Access
 
 ```bash
-# Test secret access from Account 1
-aws secretsmanager get-secret-value \
-  --secret-id arn:aws:secretsmanager:region:account2:secret:rds-postgres-credentials-XXXXXX
+SECRET_ARN=$(cd rds && terraform output -raw secret_arn)
+aws secretsmanager get-secret-value --secret-id $SECRET_ARN
 ```
 
 ## Cleanup
 
+Destroy resources in reverse order:
+
 ```bash
-terraform destroy
+cd lambda
+terraform destroy -auto-approve
+cd ../rds
+terraform destroy -auto-approve
 ```
 
 ## Cost Considerations
@@ -266,22 +278,16 @@ This project is licensed under the MIT License.
 
 ### Initial Setup
 ```bash
-# Initialize git repository
 git init
 git add .
 git commit -m "Initial commit: AWS VPC Lattice cross-account transaction store"
-
-# Add remote repository
 git remote add origin https://github.com/eyalestrin/amazon-vpc-lattice.git
 git branch -M main
-
-# Push to GitHub
 git push -u origin main
 ```
 
 ### Updating Repository
 ```bash
-# Add changes
 git add .
 git commit -m "Update: Add web interface and architecture documentation"
 git push origin main

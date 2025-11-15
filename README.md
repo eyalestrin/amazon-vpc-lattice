@@ -49,7 +49,7 @@ git clone https://github.com/eyalestrin/amazon-vpc-lattice.git
 cd amazon-vpc-lattice
 ```
 
-### 3. Deploy RDS Account (Account 2) First
+### 3. Deploy RDS Account First
 
 Get your AWS Account IDs:
 ```bash
@@ -57,28 +57,28 @@ aws sts get-caller-identity --query Account --output text
 # Save for lambda/terraform.tfvars -> account2_id
 ```
 
-Get Account 1 ID from Account 1 CloudShell (run this in Account 1):
+Get Lambda account ID from Lambda Account CloudShell (run this in Lambda account):
 ```bash
 aws sts get-caller-identity --query Account --output text
 # Save for rds/terraform.tfvars -> account1_id
 ```
 
-Back in Account 2, create and configure terraform.tfvars:
+Back in RDS account, create and configure terraform.tfvars:
 ```bash
 cd rds
 cp terraform.tfvars.example terraform.tfvars
 
-# Replace with your Account 1 ID from above
+# Replace with your Lambda account ID from above
 cat > terraform.tfvars <<EOF
 aws_region  = "us-east-1"
-account1_id = "123456789012"
+account1_id = "<Lambda account ID>"
 EOF
 ```
 
 Or manually edit `terraform.tfvars`:
 ```hcl
 aws_region  = "us-east-1"
-account1_id = "123456789012"  # Replace with your Account 1 ID
+account1_id = "<Lambda account ID>"
 ```
 
 Deploy RDS infrastructure:
@@ -105,38 +105,34 @@ DB_PASSWORD=$(terraform output -raw db_password)
 PGPASSWORD=$DB_PASSWORD psql -h $RDS_ENDPOINT -U dbadmin -d transactionsdb -f transactions_data.sql
 ```
 
-### 5. Deploy Lambda Account (Account 1)
+### 5. Deploy Lambda Account
 
-Get values from Account 2 (RDS) deployment outputs (run this in Account 2):
+Get values from RDS deployment outputs (run this in RDS account):
 ```bash
 terraform output secret_arn
 terraform output lattice_service_network_arn
 ```
 
-In Account 1, get Account IDs and create terraform.tfvars:
+In Lambda account, create terraform.tfvars:
 ```bash
-# Get current account ID (Account 1 - Lambda)
-AWS_ACCOUNT_1=$(aws sts get-caller-identity --query Account --output text)
-echo "Account 1 (Lambda): $AWS_ACCOUNT_1"
-
 cd lambda
 cp terraform.tfvars.example terraform.tfvars
 
-# Replace with your actual values from Account 2 outputs
+# Replace with your actual values from RDS account outputs
 cat > terraform.tfvars <<EOF
 aws_region                   = "us-east-1"
-account2_id                  = "123456789013"
-rds_secret_arn              = "arn:aws:secretsmanager:us-east-1:123456789013:secret:rds-postgres-credentials-XXXXXX"
-lattice_service_network_arn = "arn:aws:vpc-lattice:us-east-1:123456789013:servicenetwork/sn-XXXXXXXXX"
+account2_id                  = "<RDS account ID>"
+rds_secret_arn              = "arn:aws:secretsmanager:us-east-1:<RDS account ID>:secret:rds-postgres-credentials-XXXXXX"
+lattice_service_network_arn = "arn:aws:vpc-lattice:us-east-1:<RDS account ID>:servicenetwork/sn-XXXXXXXXX"
 EOF
 ```
 
 Or manually edit `terraform.tfvars`:
 ```hcl
 aws_region                   = "us-east-1"
-account2_id                  = "123456789013"  # Replace with your Account 2 ID
-rds_secret_arn              = "arn:aws:secretsmanager:us-east-1:123456789013:secret:rds-postgres-credentials-XXXXXX"  # From step 3 output
-lattice_service_network_arn = "arn:aws:vpc-lattice:us-east-1:123456789013:servicenetwork/sn-XXXXXXXXX"  # From step 3 output
+account2_id                  = "<RDS account ID>"
+rds_secret_arn              = "arn:aws:secretsmanager:us-east-1:<RDS account ID>:secret:rds-postgres-credentials-XXXXXX"  # From step 3 output
+lattice_service_network_arn = "arn:aws:vpc-lattice:us-east-1:<RDS account ID>:servicenetwork/sn-XXXXXXXXX"  # From step 3 output
 
 Create Lambda package and deploy:
 ```bash

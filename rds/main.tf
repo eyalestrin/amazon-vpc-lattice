@@ -106,7 +106,7 @@ resource "aws_secretsmanager_secret_version" "rds_credentials" {
     username = "dbadmin"
     password = random_password.db_password.result
     engine   = "postgres"
-    host     = aws_db_instance.postgres.endpoint
+    host     = aws_db_instance.postgres.address
     port     = 5432
     dbname   = "transactionsdb"
   })
@@ -202,7 +202,7 @@ resource "aws_ram_principal_association" "lattice_share_principal" {
 
 # Outputs
 output "rds_endpoint" {
-  value = aws_db_instance.postgres.endpoint
+  value = aws_db_instance.postgres.address
 }
 
 output "secret_arn" {

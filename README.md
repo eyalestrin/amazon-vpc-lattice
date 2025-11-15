@@ -75,6 +75,9 @@ terraform apply
 ### 4. Import Transaction Data
 
 ```bash
+# Install PostgreSQL client
+sudo yum install -y postgresql15
+
 RDS_ENDPOINT=$(terraform output -raw rds_endpoint)
 DB_PASSWORD=$(terraform output -raw db_password)
 PGPASSWORD=$DB_PASSWORD psql -h $RDS_ENDPOINT -U dbadmin -d transactionsdb -f transactions_data.sql

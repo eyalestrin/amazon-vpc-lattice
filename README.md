@@ -53,16 +53,14 @@ cd amazon-vpc-lattice
 
 Get your AWS Account IDs:
 ```bash
-# Get current account ID (Account 2 - RDS)
-AWS_ACCOUNT_2=$(aws sts get-caller-identity --query Account --output text)
-echo "Account 2 (RDS): $AWS_ACCOUNT_2"
+aws sts get-caller-identity --query Account --output text
+# Save for lambda/terraform.tfvars -> account2_id
 ```
 
 Get Account 1 ID from Account 1 CloudShell (run this in Account 1):
 ```bash
-# Get current account ID (Account 1 - Lambda)
-AWS_ACCOUNT_1=$(aws sts get-caller-identity --query Account --output text)
-echo "Account 1 (Lambda): $AWS_ACCOUNT_1"
+aws sts get-caller-identity --query Account --output text
+# Save for rds/terraform.tfvars -> account1_id
 ```
 
 Back in Account 2, create and configure terraform.tfvars:

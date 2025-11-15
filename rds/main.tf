@@ -168,13 +168,13 @@ resource "aws_vpclattice_service" "rds_service" {
 }
 
 resource "aws_vpclattice_target_group" "rds_target_group" {
-  name     = "rds-target-group"
-  type     = "IP"
-  port     = 5432
-  protocol = "TCP"
+  name = "rds-target-group"
+  type = "IP"
 
   config {
     vpc_identifier = aws_vpc.rds_vpc.id
+    port           = 5432
+    protocol       = "TCP"
   }
 }
 
@@ -197,6 +197,7 @@ resource "aws_vpclattice_listener" "rds_listener" {
     forward {
       target_groups {
         target_group_identifier = aws_vpclattice_target_group.rds_target_group.id
+        weight                  = 100
       }
     }
   }

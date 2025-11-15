@@ -67,32 +67,9 @@ Back in RDS account, create and configure terraform.tfvars:
 ```bash
 cd rds
 cp terraform.tfvars.example terraform.tfvars
-
-# Replace with your Lambda account ID from above
-cat > terraform.tfvars <<EOF
-aws_region  = "us-east-1"
-account1_id = "<Lambda account ID>"
-EOF
-```
-
-Or manually edit `terraform.tfvars`:
-```hcl
-aws_region  = "us-east-1"
-account1_id = "<Lambda account ID>"
-```
-
-Deploy RDS infrastructure:
-```bash
+# Edit: account1_id = "<Lambda account ID>"
 terraform init
-terraform plan
-terraform apply -auto-approve
-```
-
-Save the outputs:
-```bash
-terraform output secret_arn
-terraform output lattice_service_network_arn
-terraform output rds_endpoint
+terraform apply
 ```
 
 ### 4. Import Transaction Data
@@ -100,8 +77,6 @@ terraform output rds_endpoint
 ```bash
 RDS_ENDPOINT=$(terraform output -raw rds_endpoint)
 DB_PASSWORD=$(terraform output -raw db_password)
-
-# Import data using auto-generated password
 PGPASSWORD=$DB_PASSWORD psql -h $RDS_ENDPOINT -U dbadmin -d transactionsdb -f transactions_data.sql
 ```
 
@@ -117,38 +92,18 @@ In Lambda account, create terraform.tfvars:
 ```bash
 cd lambda
 cp terraform.tfvars.example terraform.tfvars
+# Edit with values from RDS account outputs:
+# account2_id = "<RDS account ID>"
+# rds_secret_arn = "arn:aws:secretsmanager:..."
+# lattice_service_network_arn = "arn:aws:vpc-lattice:..."
 
-# Replace with your actual values from RDS account outputs
-cat > terraform.tfvars <<EOF
-aws_region                   = "us-east-1"
-account2_id                  = "<RDS account ID>"
-rds_secret_arn              = "arn:aws:secretsmanager:us-east-1:<RDS account ID>:secret:rds-postgres-credentials-XXXXXX"
-lattice_service_network_arn = "arn:aws:vpc-lattice:us-east-1:<RDS account ID>:servicenetwork/sn-XXXXXXXXX"
-EOF
-```
-
-Or manually edit `terraform.tfvars`:
-```hcl
-aws_region                   = "us-east-1"
-account2_id                  = "<RDS account ID>"
-rds_secret_arn              = "arn:aws:secretsmanager:us-east-1:<RDS account ID>:secret:rds-postgres-credentials-XXXXXX"  # From step 3 output
-lattice_service_network_arn = "arn:aws:vpc-lattice:us-east-1:<RDS account ID>:servicenetwork/sn-XXXXXXXXX"  # From step 3 output
-
-Create Lambda package and deploy:
-```bash
 mkdir lambda_package
 cp lambda_function.py lambda_package/
 pip install -r requirements.txt -t lambda_package/
 cd lambda_package && zip -r ../lambda_function.zip . && cd ..
 rm -rf lambda_package
 terraform init
-terraform plan
-terraform apply -auto-approve
-```
-
-Get your Lambda Function URL:
-```bash
-terraform output lambda_function_url
+terraform apply
 ```
 
 ## Usage

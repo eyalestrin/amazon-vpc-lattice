@@ -154,6 +154,8 @@ resource "aws_lambda_function" "query_function" {
     }
   }
 
+  depends_on = [aws_vpclattice_service_network_vpc_association.lambda_vpc_assoc]
+
   depends_on = [data.archive_file.lambda_zip]
 }
 

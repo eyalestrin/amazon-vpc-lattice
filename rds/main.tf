@@ -167,41 +167,12 @@ resource "aws_vpclattice_service" "rds_service" {
   name = "rds-postgres-service"
 }
 
-resource "aws_vpclattice_target_group" "rds_target_group" {
-  name = "rds-target-group"
-  type = "IP"
 
-  config {
-    vpc_identifier = aws_vpc.rds_vpc.id
-    port           = 5432
-    protocol       = "HTTPS"
-  }
-}
 
-resource "aws_vpclattice_target_group_attachment" "rds_target" {
-  target_group_identifier = aws_vpclattice_target_group.rds_target_group.id
+# Note: RDS will be accessed directly through VPC, not through VPC Lattice target group
+# VPC Lattice provides the network connectivity between accounts
 
-  target {
-    id   = aws_db_instance.postgres.address
-    port = 5432
-  }
-}
 
-resource "aws_vpclattice_listener" "rds_listener" {
-  name               = "rds-listener"
-  protocol           = "HTTPS"
-  port               = 443
-  service_identifier = aws_vpclattice_service.rds_service.id
-
-  default_action {
-    forward {
-      target_groups {
-        target_group_identifier = aws_vpclattice_target_group.rds_target_group.id
-        weight                  = 100
-      }
-    }
-  }
-}
 
 # Cross-account service network association
 resource "aws_vpclattice_service_network_service_association" "cross_account" {
@@ -240,10 +211,6 @@ output "secret_arn" {
 
 output "lattice_service_network_arn" {
   value = aws_vpclattice_service_network.main.arn
-}
-
-output "lattice_service_endpoint" {
-  value = aws_vpclattice_service.rds_service.dns_entry[0].domain_name
 }
 
 output "db_password" {

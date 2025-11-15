@@ -135,7 +135,7 @@ resource "aws_secretsmanager_secret_policy" "rds_credentials_policy" {
 resource "aws_db_instance" "postgres" {
   identifier             = "postgres-transactions-db"
   engine                 = "postgres"
-  engine_version         = "15.4"
+  engine_version         = "15"
   instance_class         = "db.t3.micro"
   allocated_storage      = 20
   storage_type           = "gp2"

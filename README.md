@@ -85,20 +85,12 @@ PGPASSWORD=$DB_PASSWORD psql -h $RDS_ENDPOINT -U dbadmin -d transactionsdb -f tr
 
 ### 5. Deploy Lambda Account
 
-Get values from RDS deployment outputs (run this in RDS account):
 ```bash
-terraform output secret_arn
-terraform output lattice_service_network_arn
-```
-
-In Lambda account, create terraform.tfvars:
-```bash
-cd lambda
+cd ../lambda
 cp terraform.tfvars.example terraform.tfvars
-# Edit with values from RDS account outputs:
-# account2_id = "<RDS account ID>"
-# rds_secret_arn = "arn:aws:secretsmanager:..."
-# lattice_service_network_arn = "arn:aws:vpc-lattice:..."
+# Edit: account2_id = "<RDS account ID>"
+# Edit: rds_secret_arn = "<from RDS terraform output>"
+# Edit: lattice_service_network_arn = "<from RDS terraform output>"
 
 mkdir lambda_package
 cp lambda_function.py lambda_package/

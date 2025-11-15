@@ -78,26 +78,31 @@ terraform apply
 # Install PostgreSQL client
 sudo yum install -y postgresql15
 
+# Get RDS endpoint and password
 RDS_ENDPOINT=$(terraform output -raw rds_endpoint)
 DB_PASSWORD=$(terraform output -raw db_password)
+
+# Import data
 PGPASSWORD=$DB_PASSWORD psql -h $RDS_ENDPOINT -U dbadmin -d transactionsdb -f transactions_data.sql
 ```
 
-### 5. Deploy Lambda Account
-
-Get RDS outputs (run in RDS account):
+Save these outputs for Lambda deployment:
 ```bash
 terraform output secret_arn
 terraform output lattice_service_network_arn
+terraform output rds_endpoint
 ```
+
+### 5. Deploy Lambda Account
 
 In Lambda account:
 ```bash
 cd ../lambda
 cp terraform.tfvars.example terraform.tfvars
-# Edit: account2_id = "<RDS account ID>"
-# Edit: rds_secret_arn = "<from RDS terraform output>"
-# Edit: lattice_service_network_arn = "<from RDS terraform output>"
+# Edit with values from RDS account terraform outputs:
+# account2_id = "<RDS account ID>"
+# rds_secret_arn = "<from terraform output secret_arn>"
+# lattice_service_network_arn = "<from terraform output lattice_service_network_arn>"
 
 mkdir lambda_package
 cp lambda_function.py lambda_package/

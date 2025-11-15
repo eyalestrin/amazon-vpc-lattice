@@ -85,6 +85,13 @@ PGPASSWORD=$DB_PASSWORD psql -h $RDS_ENDPOINT -U dbadmin -d transactionsdb -f tr
 
 ### 5. Deploy Lambda Account
 
+Get RDS outputs (run in RDS account):
+```bash
+terraform output secret_arn
+terraform output lattice_service_network_arn
+```
+
+In Lambda account:
 ```bash
 cd ../lambda
 cp terraform.tfvars.example terraform.tfvars

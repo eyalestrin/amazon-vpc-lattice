@@ -174,7 +174,7 @@ resource "aws_vpclattice_target_group" "rds_target_group" {
   config {
     vpc_identifier = aws_vpc.rds_vpc.id
     port           = 5432
-    protocol       = "TCP"
+    protocol       = "HTTPS"
   }
 }
 
@@ -189,8 +189,8 @@ resource "aws_vpclattice_target_group_attachment" "rds_target" {
 
 resource "aws_vpclattice_listener" "rds_listener" {
   name               = "rds-listener"
-  protocol           = "TCP"
-  port               = 5432
+  protocol           = "HTTPS"
+  port               = 443
   service_identifier = aws_vpclattice_service.rds_service.id
 
   default_action {
